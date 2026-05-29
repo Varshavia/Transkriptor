@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🎙️ Transkriptor</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f13;
+      color: #e8e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    header h1 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      color: #6b7280;
+      font-size: 1rem;
+    }
+
+    .card {
+      background: #1a1a24;
+      border: 1px solid #2a2a3a;
+      border-radius: 20px;
+      padding: 32px;
+      width: 100%;
+      max-width: 700px;
+      margin-bottom: 24px;
+    }
+
+    /* --- Drop Zone --- */
+    #dropzone {
+      border: 2px dashed #3a3a5a;
+      border-radius: 16px;
+      padding: 48px 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s;
+      position: relative;
+    }
+
+    #dropzone:hover, #dropzone.dragover {
+      border-color: #a78bfa;
+      background: rgba(167,139,250,0.06);
+    }
+
+    #dropzone .icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+    }
+
+    #dropzone h2 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    #dropzone p {
+      color: #6b7280;
+      font-size: 0.9rem;
+    }
+
+    #dropzone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    #file-name {
+      margin-top: 16px;
+      font-size: 0.9rem;
+      color: #a78bfa;
+      font-weight: 500;
+      display: none;
+    }
+
+    /* --- Options --- */
+    .options-row {
+      display: flex;
+      gap: 16px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+
+    .option-group {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    .option-group label {
+      display: block;
+      font-size: 0.8rem;
+      color: #9ca3af;
+      margin-bottom: 8px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .option-group select {
+      width: 100%;
+      background: #0f0f13;
+      border: 1px solid #2a2a3a;
+      border-radius: 10px;
+      color: #e8e8f0;
+      padding: 10px 14px;
+      font-size: 0.95rem;
+      appearance: none;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .option-group select:focus {
+      outline: none;
+      border-color: #a78bfa;
+    }
+
+    /* --- Button --- */
+    #transcribe-btn {
+      width: 100%;
+      margin-top: 24px;
+      padding: 14px;
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 1.05rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+
+    #transcribe-btn:hover:not(:disabled) {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    #transcribe-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    /* --- Progress --- */
+    #progress-wrap {
+      display: none;
+      margin-top: 20px;
+    }
+
+    .progress-bar-bg {
+      background: #2a2a3a;
+      border-radius: 99px;
+      height: 6px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #a78bfa, #60a5fa);
+      border-radius: 99px;
+      animation: indeterminate 1.6s ease-in-out infinite;
+    }
+
+    @keyframes indeterminate {
+      0%   { transform: translateX(-100%) scaleX(0.5); }
+      50%  { transform: translateX(0%)    scaleX(1); }
+      100% { transform: translateX(200%)  scaleX(0.5); }
+    }
+
+    .progress-label {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #9ca3af;
+      margin-top: 10px;
+    }
+
+    /* --- Result --- */
+    #result-card {
+      display: none;
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .result-header h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    .badges {
+      display: flex;
+      gap: 8px;
+    }
+
+    .badge {
+      background: rgba(167,139,250,0.15);
+      border: 1px solid rgba(167,139,250,0.3);
+      color: #a78bfa;
+      font-size: 0.78rem;
+      padding: 4px 10px;
+      border-radius: 99px;
+      font-weight: 500;
+    }
+
+    #full-text {
+      background: #0f0f13;
+      border: 1px solid #2a2a3a;
+      border-radius: 12px;
+      padding: 20px;
+      font-size: 0.97rem;
+      line-height: 1.75;
+      white-space: pre-wrap;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-bottom: 20px;
+    }
+
+    /* Segments */
+    #segments-toggle {
+      background: none;
+      border: 1px solid #2a2a3a;
+      color: #9ca3af;
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-bottom: 16px;
+    }
+
+    #segments-toggle:hover {
+      border-color: #a78bfa;
+      color: #a78bfa;
+    }
+
+    #segments-list {
+      display: none;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .segment {
+      display: flex;
+      gap: 14px;
+      padding: 10px 0;
+      border-bottom: 1px solid #1e1e2e;
+      font-size: 0.9rem;
+      align-items: flex-start;
+    }
+
+    .segment:last-child { border-bottom: none; }
+
+    .seg-time {
+      color: #a78bfa;
+      font-size: 0.78rem;
+      min-width: 90px;
+      padding-top: 2px;
+      font-family: monospace;
+    }
+
+    .seg-text { line-height: 1.6; }
+
+    /* Copy / Download buttons */
+    .action-btns {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid #2a2a3a;
+      background: transparent;
+      color: #e8e8f0;
+    }
+
+    .action-btn:hover {
+      border-color: #a78bfa;
+      color: #a78bfa;
+    }
+
+    /* Error */
+    #error-box {
+      display: none;
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 12px;
+      padding: 16px 20px;
+      color: #f87171;
+      margin-top: 16px;
+      font-size: 0.95rem;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #3a3a5a; border-radius: 99px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🎙️ Transkriptor</h1>
+  <p>Ses dosyanızı yükleyin, metne dönüştürelim</p>
+</header>
+
+<!-- Upload Card -->
+<div class="card">
+  <div id="dropzone">
+    <input type="file" id="file-input" accept=".mp3,.mp4,.wav,.m4a,.ogg,.flac,.webm" />
+    <div class="icon">🎵</div>
+    <h2>Dosyayı buraya sürükleyin</h2>
+    <p>veya tıklayıp seçin &nbsp;·&nbsp; MP3, WAV, M4A, OGG, FLAC, MP4</p>
+  </div>
+  <div id="file-name"></div>
+
+  <div class="options-row">
+    <div class="option-group">
+      <label>Model</label>
+      <select id="model-select">
+        <option value="tiny">Tiny — En hızlı</option>
+        <option value="base" selected>Base — Dengeli ✓</option>
+        <option value="small">Small — Daha iyi</option>
+        <option value="medium">Medium — Yüksek kalite</option>
+        <option value="large">Large — En iyi</option>
+      </select>
+    </div>
+    <div class="option-group">
+      <label>Dil</label>
+      <select id="lang-select">
+        <option value="auto">Otomatik algıla</option>
+        <option value="tr">Türkçe</option>
+        <option value="en">İngilizce</option>
+        <option value="de">Almanca</option>
+        <option value="fr">Fransızca</option>
+        <option value="es">İspanyolca</option>
+        <option value="ar">Arapça</option>
+        <option value="ru">Rusça</option>
+        <option value="ja">Japonca</option>
+        <option value="zh">Çince</option>
+      </select>
+    </div>
+  </div>
+
+  <button id="transcribe-btn" disabled>Transkripsiyonu Başlat</button>
+
+  <div id="progress-wrap">
+    <div class="progress-bar-bg"><div class="progress-bar-fill"></div></div>
+    <div class="progress-label" id="progress-label">Model yükleniyor...</div>
+  </div>
+
+  <div id="error-box"></div>
+</div>
+
+<!-- Result Card -->
+<div class="card" id="result-card">
+  <div class="result-header">
+    <h3>📄 Transkripsiyon</h3>
+    <div class="badges">
+      <span class="badge" id="lang-badge">—</span>
+      <span class="badge" id="model-badge">—</span>
+    </div>
+  </div>
+
+  <div id="full-text"></div>
+
+  <button id="segments-toggle" onclick="toggleSegments()">⏱ Zaman damgalarını göster</button>
+  <div id="segments-list"></div>
+
+  <div class="action-btns">
+    <button class="action-btn" onclick="copyText()">📋 Kopyala</button>
+    <button class="action-btn" onclick="downloadTxt()">⬇ TXT İndir</button>
+    <button class="action-btn" onclick="downloadSrt()">⬇ SRT İndir</button>
+  </div>
+</div>
+
+<script>
+  const dropzone = document.getElementById("dropzone");
+  const fileInput = document.getElementById("file-input");
+  const fileNameEl = document.getElementById("file-name");
+  const btn = document.getElementById("transcribe-btn");
+  const progressWrap = document.getElementById("progress-wrap");
+  const progressLabel = document.getElementById("progress-label");
+  const errorBox = document.getElementById("error-box");
+  const resultCard = document.getElementById("result-card");
+
+  let selectedFile = null;
+  let lastResult = null;
+
+  // Drag & Drop
+  dropzone.addEventListener("dragover", e => { e.preventDefault(); dropzone.classList.add("dragover"); });
+  dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+  dropzone.addEventListener("drop", e => {
+    e.preventDefault();
+    dropzone.classList.remove("dragover");
+    const file = e.dataTransfer.files[0];
+    if (file) setFile(file);
+  });
+
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files[0]) setFile(fileInput.files[0]);
+  });
+
+  function setFile(file) {
+    selectedFile = file;
+    const mb = (file.size / 1024 / 1024).toFixed(1);
+    fileNameEl.textContent = `📎 ${file.name}  (${mb} MB)`;
+    fileNameEl.style.display = "block";
+    btn.disabled = false;
+    errorBox.style.display = "none";
+    resultCard.style.display = "none";
+  }
+
+  btn.addEventListener("click", async () => {
+    if (!selectedFile) return;
+
+    btn.disabled = true;
+    progressWrap.style.display = "block";
+    errorBox.style.display = "none";
+    resultCard.style.display = "none";
+
+    const steps = [
+      "Model yükleniyor...",
+      "Ses işleniyor...",
+      "Transkripsiyon yapılıyor...",
+      "Sonuçlar hazırlanıyor..."
+    ];
+    let step = 0;
+    const stepInterval = setInterval(() => {
+      if (step < steps.length - 1) {
+        step++;
+        progressLabel.textContent = steps[step];
+      }
+    }, 8000);
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("model", document.getElementById("model-select").value);
+    formData.append("language", document.getElementById("lang-select").value);
+
+    try {
+      const resp = await fetch("/transcribe", { method: "POST", body: formData });
+      const data = await resp.json();
+
+      clearInterval(stepInterval);
+      progressWrap.style.display = "none";
+      btn.disabled = false;
+
+      if (data.error) {
+        errorBox.textContent = "❌ " + data.error;
+        errorBox.style.display = "block";
+        return;
+      }
+
+      lastResult = data;
+      showResult(data);
+
+    } catch (err) {
+      clearInterval(stepInterval);
+      progressWrap.style.display = "none";
+      btn.disabled = false;
+      errorBox.textContent = "❌ Sunucuya bağlanılamadı. app.py çalışıyor mu?";
+      errorBox.style.display = "block";
+    }
+  });
+
+  function showResult(data) {
+    resultCard.style.display = "block";
+    document.getElementById("full-text").textContent = data.text || "(Metin bulunamadı)";
+    document.getElementById("lang-badge").textContent = "🌐 " + (data.language || "?").toUpperCase();
+    document.getElementById("model-badge").textContent = "🤖 " + document.getElementById("model-select").value;
+
+    // Segments
+    const list = document.getElementById("segments-list");
+    list.innerHTML = "";
+    (data.segments || []).forEach(seg => {
+      const div = document.createElement("div");
+      div.className = "segment";
+      div.innerHTML = `<span class="seg-time">${fmt(seg.start)} → ${fmt(seg.end)}</span><span class="seg-text">${seg.text}</span>`;
+      list.appendChild(div);
+    });
+    resultCard.scrollIntoView({ behavior: "smooth" });
+  }
+
+  function fmt(s) {
+    const m = Math.floor(s / 60);
+    const sec = (s % 60).toFixed(1).padStart(4, "0");
+    return `${String(m).padStart(2,"0")}:${sec}`;
+  }
+
+  function toggleSegments() {
+    const list = document.getElementById("segments-list");
+    const btn = document.getElementById("segments-toggle");
+    const visible = list.style.display === "block";
+    list.style.display = visible ? "none" : "block";
+    btn.textContent = visible ? "⏱ Zaman damgalarını göster" : "⏱ Zaman damgalarını gizle";
+  }
+
+  function copyText() {
+    if (!lastResult) return;
+    navigator.clipboard.writeText(lastResult.text).then(() => alert("Metin kopyalandı!"));
+  }
+
+  function downloadTxt() {
+    if (!lastResult) return;
+    const blob = new Blob([lastResult.text], { type: "text/plain;charset=utf-8" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = "transkripsiyon.txt"; a.click();
+  }
+
+  function downloadSrt() {
+    if (!lastResult) return;
+    let srt = "";
+    (lastResult.segments || []).forEach((seg, i) => {
+      srt += `${i+1}\n${srtTime(seg.start)} --> ${srtTime(seg.end)}\n${seg.text}\n\n`;
+    });
+    const blob = new Blob([srt], { type: "text/plain;charset=utf-8" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    a.download = "transkripsiyon.srt"; a.click();
+  }
+
+  function srtTime(s) {
+    const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = Math.floor(s%60), ms = Math.round((s%1)*1000);
+    return `${pad(h)}:${pad(m)}:${pad(sec)},${String(ms).padStart(3,"0")}`;
+  }
+  function pad(n) { return String(n).padStart(2,"0"); }
+</script>
+</body>
+</html>
